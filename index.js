@@ -14,7 +14,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.dyntprt.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -49,10 +49,9 @@ async function run() {
       res.send(result);
     });
 
-    // selected get api
+    // selectedClasses get api
     app.get("/all-selectedClasses", async (req, res) => {
       const email = req.query.email;
-      console.log(email)
       if (!email) {
         res.send([]);
       }
@@ -61,10 +60,19 @@ async function run() {
       res.send(result);
     });
 
-    // selected post api
+    // selectedClasses post api
     app.post("/all-selectedClasses", async (req, res) => {
       const item = req.body;
       const result = await selectedClassesCollection.insertOne(item);
+      res.send(result);
+    });
+
+    // selectedClasses delete api
+    app.delete("/all-selectedClasses/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const filter = { _id: new ObjectId(id) };
+      const result = await selectedClassesCollection.deleteOne(filter);
       res.send(result);
     });
 
