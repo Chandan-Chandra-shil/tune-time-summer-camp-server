@@ -7,11 +7,11 @@ const port = process.env.PORT || 5000;
 
 // middleware
 const corsOptions = {
-  origin: '*',
+  origin: "*",
   credentials: true,
   optionSuccessStatus: 200,
-}
-app.use(cors(corsOptions))
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion } = require("mongodb");
@@ -32,7 +32,9 @@ async function run() {
     await client.connect();
     const usersCollection = client.db("tuneTimeDB").collection("users");
     const classesCollection = client.db("tuneTimeDB").collection("classes");
-    const selectedClassesCollection = client.db("tuneTimeDB").collection("selectedClasses");
+    const selectedClassesCollection = client
+      .db("tuneTimeDB")
+      .collection("selectedClasses");
 
     // classes related api
     app.get("/all-class", async (req, res) => {
@@ -44,6 +46,18 @@ async function run() {
 
     app.get("/all-instructor", async (req, res) => {
       const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
+    // selected get api
+    app.get("/all-selectedClasses", async (req, res) => {
+      const email = req.query.email;
+      console.log(email)
+      if (!email) {
+        res.send([]);
+      }
+      const query = { email: email };
+      const result = await selectedClassesCollection.find(query).toArray();
       res.send(result);
     });
 
