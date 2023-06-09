@@ -2,10 +2,16 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 require("dotenv").config();
+require("dotenv").config();
 const port = process.env.PORT || 5000;
 
 // middleware
-app.use(cors());
+const corsOptions = {
+  origin: '*',
+  credentials: true,
+  optionSuccessStatus: 200,
+}
+app.use(cors(corsOptions))
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion } = require("mongodb");
@@ -26,6 +32,7 @@ async function run() {
     await client.connect();
     const usersCollection = client.db("tuneTimeDB").collection("users");
     const classesCollection = client.db("tuneTimeDB").collection("classes");
+    const selectedClassesCollection = client.db("tuneTimeDB").collection("selectedClasses");
 
     // classes related api
     app.get("/all-class", async (req, res) => {
@@ -37,6 +44,13 @@ async function run() {
 
     app.get("/all-instructor", async (req, res) => {
       const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
+    // selected post api
+    app.post("/all-selectedClasses", async (req, res) => {
+      const item = req.body;
+      const result = await selectedClassesCollection.insertOne(item);
       res.send(result);
     });
 
