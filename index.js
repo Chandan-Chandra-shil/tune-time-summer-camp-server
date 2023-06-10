@@ -31,21 +31,29 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const usersCollection = client.db("tuneTimeDB").collection("users");
+    const instructorsCollection = client.db("tuneTimeDB").collection("instructors");
     const classesCollection = client.db("tuneTimeDB").collection("classes");
     const selectedClassesCollection = client
       .db("tuneTimeDB")
       .collection("selectedClasses");
 
-    // classes related api
+    // classes get  api
     app.get("/all-class", async (req, res) => {
       const result = await classesCollection.find().toArray();
       res.send(result);
     });
+    
+    // classes  post api 
+     app.post("/all-class", async (req, res) => {
+       const newClass = req.body;
+       const result = await classesCollection.insertOne(newClass);
+       res.send(result);
+     });
 
-    // users related api
+    // users get api
 
-    app.get("/all-instructor", async (req, res) => {
-      const result = await usersCollection.find().toArray();
+    app.get("/all-instructors", async (req, res) => {
+      const result = await instructorsCollection.find().toArray();
       res.send(result);
     });
 
