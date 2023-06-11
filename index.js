@@ -1,8 +1,10 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const app = express();
 require("dotenv").config();
 require("dotenv").config();
+
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -38,6 +40,14 @@ async function run() {
     const selectedClassesCollection = client
       .db("tuneTimeDB")
       .collection("selectedClasses");
+    
+    //JWT TOKEN   
+    app.post('/jwt', (req,res)=> {
+      const user = req.body;
+      const token = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+      res.send({token})
+
+    })
 
     // classes get  api
     app.get("/all-class", async (req, res) => {
@@ -75,7 +85,7 @@ async function run() {
       res.send(result);
     });
 
-    // users admin api 
+    // users make a admin api 
     app.patch('/all-users/admin/:id', async (req, res) => {
       const id = req.params.id;
       const filter = {_id: new ObjectId(id) };
@@ -88,6 +98,19 @@ async function run() {
       res.send(result)
 
     })
+    // users make a instructor api 
+    app.patch("/admin/instructor/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const modify = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: "instructor",
+        },
+      };
+      const result = await usersCollection.updateOne(modify, updateDoc);
+      res.send(result);
+    });
 
     // selectedClasses get api
     app.get("/all-selectedClasses", async (req, res) => {
