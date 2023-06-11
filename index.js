@@ -16,6 +16,24 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ error: true, massage: "unauthorized access" });
+  }
+  //BEARER TOKEN 
+  const token = authorization.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ error: true, massage:'unauthorized access'})
+    }
+    req.decoded = decoded;
+    next();
+  })
+};
+
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.dyntprt.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -40,14 +58,15 @@ async function run() {
     const selectedClassesCollection = client
       .db("tuneTimeDB")
       .collection("selectedClasses");
-    
-    //JWT TOKEN   
-    app.post('/jwt', (req,res)=> {
-      const user = req.body;
-      const token = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
-      res.send({token})
 
-    })
+    //JWT TOKEN
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
 
     // classes get  api
     app.get("/all-class", async (req, res) => {
@@ -85,20 +104,43 @@ async function run() {
       res.send(result);
     });
 
-    // users make a admin api 
-    app.patch('/all-users/admin/:id', async (req, res) => {
+    // check admin api 
+    app.get('/allusers/admin/:email',verifyJWT,async (req, res) => {
+      const email = req.params.email;
+     /*  console.log('email...',email) */
+      if (req.decoded.email !== email) {
+        res.send({admin:false})
+      }
+      const query = { email: email }
+      const user = await usersCollection.findOne(query);
+      const result = { admin: user?.role === 'admin' }
+      res.send(result)
+    })
+    // check instructor api 
+    app.get('/allusers/admin/instructor/:email',verifyJWT,async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({admin:false})
+      }
+      const query = { email: email }
+      const user = await usersCollection.findOne(query);
+      const result = { instructor: user?.role === 'instructor' }
+      res.send(result)
+    })
+
+    // users make a admin api
+    app.patch("/all-users/admin/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = {_id: new ObjectId(id) };
+      const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
-          role: 'admin'
+          role: "admin",
         },
       };
       const result = await usersCollection.updateOne(filter, updateDoc);
-      res.send(result)
-
-    })
-    // users make a instructor api 
+      res.send(result);
+    });
+    // users make a instructor api
     app.patch("/admin/instructor/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
@@ -113,10 +155,14 @@ async function run() {
     });
 
     // selectedClasses get api
-    app.get("/all-selectedClasses", async (req, res) => {
+    app.get("/all-selectedClasses", verifyJWT, async (req, res) => {
       const email = req.query.email;
       if (!email) {
         res.send([]);
+      }
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({error:true,massage:'forbidden access'})
       }
       const query = { email: email };
       const result = await selectedClassesCollection.find(query).toArray();
