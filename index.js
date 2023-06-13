@@ -55,13 +55,10 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const usersCollection = client.db("tuneTimeDB").collection("users");
-    const instructorsCollection = client
-      .db("tuneTimeDB")
-      .collection("instructors");
+    const paymentsCollection = client.db("tuneTimeDB").collection("payments");
+    const instructorsCollection = client.db("tuneTimeDB").collection("instructors");
     const classesCollection = client.db("tuneTimeDB").collection("classes");
-    const selectedClassesCollection = client
-      .db("tuneTimeDB")
-      .collection("selectedClasses");
+    const selectedClassesCollection = client.db("tuneTimeDB").collection("selectedClasses");
 
     //JWT TOKEN
     app.post("/jwt", (req, res) => {
@@ -192,7 +189,7 @@ async function run() {
       const result = await selectedClassesCollection.deleteOne(filter);
       res.send(result);
     });
-    // create payment  intent
+    // create payment  intent api
     app.post("/content-payment-intent",async (req, res) => {
       const { price } = req.body;
       const amount = price * 100;
@@ -205,6 +202,13 @@ async function run() {
         clientSecret: paymentIntent.client_secret,
       });
     });
+
+    // payment post api
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const result = await paymentsCollection.insertOne(payment);
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
