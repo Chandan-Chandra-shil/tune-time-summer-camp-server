@@ -1,9 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const app = express();
-require("dotenv").config();
-require("dotenv").config();
+
+
 
 const port = process.env.PORT || 5000;
 
@@ -23,15 +25,17 @@ const verifyJWT = (req, res, next) => {
       .status(401)
       .send({ error: true, massage: "unauthorized access" });
   }
-  //BEARER TOKEN 
-  const token = authorization.split(' ')[1];
+  //BEARER TOKEN
+  const token = authorization.split(" ")[1];
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(401).send({ error: true, massage:'unauthorized access'})
+      return res
+        .status(401)
+        .send({ error: true, massage: "unauthorized access" });
     }
     req.decoded = decoded;
     next();
-  })
+  });
 };
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -104,29 +108,33 @@ async function run() {
       res.send(result);
     });
 
-    // check admin api 
-    app.get('/allusers/admin/:email',verifyJWT,async (req, res) => {
+    // check admin api
+    app.get("/allusers/admin/:email", async (req, res) => {
       const email = req.params.email;
-     /*  console.log('email...',email) */
-      if (req.decoded.email !== email) {
-        res.send({admin:false})
-      }
-      const query = { email: email }
+      /*  console.log('email...',email) */
+      /* if (req.decoded.email !== email) {
+        res.send({ admin:false});
+      } */
+      const query = { email: email };
       const user = await usersCollection.findOne(query);
-      const result = { admin: user?.role === 'admin' }
-      res.send(result)
-    })
-    // check instructor api 
-    app.get('/allusers/admin/instructor/:email',verifyJWT,async (req, res) => {
-      const email = req.params.email;
-      if (req.decoded.email !== email) {
-        res.send({admin:false})
+      const result = { admin: user?.role === "admin" };
+      res.send(result);
+    });
+    // check instructor api
+    app.get(
+      "/allusers/admin/instructor/:email",
+      verifyJWT,
+      async (req, res) => {
+        const email = req.params.email;
+       /*  if (req.decoded.email !== email) {
+          res.send({ admin: false });
+        } */
+        const query = { email: email };
+        const user = await usersCollection.findOne(query);
+        const result = { instructor: user?.role === "instructor" };
+        res.send(result);
       }
-      const query = { email: email }
-      const user = await usersCollection.findOne(query);
-      const result = { instructor: user?.role === 'instructor' }
-      res.send(result)
-    })
+    );
 
     // users make a admin api
     app.patch("/all-users/admin/:id", async (req, res) => {
@@ -155,15 +163,15 @@ async function run() {
     });
 
     // selectedClasses get api
-    app.get("/all-selectedClasses", verifyJWT, async (req, res) => {
+    app.get("/all-selectedClasses", async (req, res) => {
       const email = req.query.email;
       if (!email) {
         res.send([]);
       }
-      const decodedEmail = req.decoded.email;
+      /* const decodedEmail = req.decoded.email;
       if (email !== decodedEmail) {
         return res.status(403).send({error:true,massage:'forbidden access'})
-      }
+      } */
       const query = { email: email };
       const result = await selectedClassesCollection.find(query).toArray();
       res.send(result);
@@ -183,6 +191,19 @@ async function run() {
       const filter = { _id: new ObjectId(id) };
       const result = await selectedClassesCollection.deleteOne(filter);
       res.send(result);
+    });
+    // create payment  intent
+    app.post("/content-payment-intent",async (req, res) => {
+      const { price } = req.body;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
     });
 
     // Send a ping to confirm a successful connection
